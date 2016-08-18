@@ -1,8 +1,6 @@
 #! /usr/bin/env python
-#
-
-
-
+# -*- coding: utf-8 -*-
+    
 from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html
@@ -20,13 +18,12 @@ print(t._dates)
 print(t._measurements)
 #t.foliumShow('./test.html')
 
-
-
 width, height = 500, 250
 
 p = figure(x_axis_type="datetime",
                title="Le Céou",
                width=width, height=height)
+
 p.line(t._dates, t._measurements, line_width=2)
 html = file_html(p, CDN, "ceou")
 iframe = IFrame(html, width=width+40, height=height+80)
