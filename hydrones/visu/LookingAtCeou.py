@@ -12,7 +12,7 @@ import folium
 from trajectory import Trajectory
 
 t = Trajectory()
-t.load_json('/home/pprandi/Documents/hydrones/01_extraction/ceou.geojson')
+t.load_json('./ceou.geojson')
 print(t.source_file)
 print(t._dates)
 print(t._measurements)
