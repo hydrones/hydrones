@@ -29,7 +29,7 @@ class Trajectory:
             'gps_lat', 'gps_lon', 'gps_geoidheight', 'gps_nbsat', 'gps_altitude',
             'leddar_range', 'leddar_ampl',
             'baro_pressure', 'baro_sea_level_pressure', 'baro_altitude', 'baro_temperature',
-            'imu_pitch_angle', 'imu_roll_angle']
+            'imu_pitch_angle', 'imu_roll_angle', 'imu_linear_accel_x', 'imu_linear_accel_y', 'imu_linear_accel_z']
 
         self._measurements = pd.DataFrame()
 
@@ -52,7 +52,7 @@ class Trajectory:
                     print("in this case, direcroty and motif are mandatory")
                     raise Exception()
                 else:
-                    loadBinaryFiles(directory, motif)
+                    self.loadBinaryFiles(directory, motif)
             else:
                 self.readBinaryFile(fileName)
 
@@ -109,7 +109,7 @@ class Trajectory:
         '''
 
         # expected structure of the file
-        Structure = "<HBBBBBIfffIffIffffff"
+        Structure = "<HBBBBBIfffIffIfffffffff"
         s = struct.Struct(Structure)
         sizeMeas = struct.calcsize(Structure)
 
@@ -146,7 +146,7 @@ class Trajectory:
                 hdMeas['gps_lon'].append(readMeasure[8])
                 hdMeas['gps_geoidheight'].append(readMeasure[9])
                 hdMeas['gps_nbsat'].append(readMeasure[10])
-                hdMeas['gps_height_above_geoid'].append(readMeasure[11])
+                hdMeas['gps_altitude'].append(readMeasure[11])
                 hdMeas['leddar_range'].append(readMeasure[12])
                 hdMeas['leddar_ampl'].append(readMeasure[13])
                 hdMeas['baro_pressure'].append(readMeasure[14])
@@ -155,6 +155,10 @@ class Trajectory:
                 hdMeas['baro_temperature'].append(readMeasure[17])
                 hdMeas['imu_pitch_angle'].append(readMeasure[18])
                 hdMeas['imu_roll_angle'].append(readMeasure[19])
+                hdMeas['imu_linear_accel_x'].append(readMeasure[20])
+                hdMeas['imu_linear_accel_y'].append(readMeasure[21])
+                hdMeas['imu_linear_accel_z'].append(readMeasure[22])
+
                 nbMeasures += 1
 
         except IOError:
@@ -172,7 +176,7 @@ class Trajectory:
 
         # store the values in the Object
         df = pd.DataFrame(hdMeas, index=dates)
-        self._measurements =  pd.concat(self._measurements, df)
+        self._measurements =  pd.concat([self._measurements, df])
 
         return 0
 
@@ -181,9 +185,11 @@ class Trajectory:
         reads from binary measurement files in a directory
         '''
         filesToRead = sorted(glob.glob("%s/%s" %(directory, motif)))
+        print(filesToRead)
 
         for f in filesToRead:
-            dates, hdMeas = readBinaryFile(f)
+            print("reading from file %s" %f)
+            self.readBinaryFile(f)
         return 0
 
     def _generateDummyData(self, length):
@@ -237,11 +243,47 @@ class Trajectory:
         else:
             return(self._measurements[key].values[0:self._currentIndex])
 
+    def currentValue(self, key):
+        '''
+        returns the value associated to a key at the current position
+        '''
+        if key not in self._keys:
+            print("There is no such key: " %key)
+            raise Exception()
+        else:
+            return(self._measurements[key].values[self._currentIndex])
+
     def pastPositions(self):
         """
         returns all past positions as a flattened array
         """
         return np.array(self._pastPositions)
+
+#===============================================================================
+# operations on variables
+    def integrate(key_in, key_out, inplace=False):
+        '''
+        integrates values over time
+        '''
+        if key_in not in self._keys():
+            print("There is no such key: %s" %key_in)
+            raise Exception()
+
+        values = self._measurements[key].values
+        times = self._measurements.index.values
+        integration = np.zeros(len(values))
+
+        for i in np.arange(1,len(values)-1,1):
+            deltaT = (times[i] - times[i-1]).item().total_seconds()
+            integration[i] = integration[i-1] + values[i] * deltaT
+
+        df = pd.DataFrame({key_out:integration}, index=self._measurements.index)
+
+        if inplace:
+            self._measurements = pd.concat([self._measurements, df])
+            return 0
+        else:
+            return df
 
     def foliumShow(self, out):
         '''
