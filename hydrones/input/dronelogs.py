@@ -7,25 +7,25 @@
 
 import datetime as dt
 import numpy as np
+import glob
 
 def extractVar(fileName, varName):
     """
         extracts only lines corresponding to varName in fileName
         :return: data dictionnairy
     """
-    for ligne in open(nomFic,'r'):
-        if (ligne.startswith('FMT') & (variable in ligne)):
+    for ligne in open(fileName,'r'):
+        if (ligne.startswith('FMT') & (varName in ligne)):
             listLigne = ligne.rstrip().replace(' ','').split(',')[5:]
             nbVal = len(listLigne)
             data=dict.fromkeys(listLigne)
             for k in data.keys():
                 data[k] = np.array([])
-        if ligne.startswith(variable):
-            ligneSansVariable = ligne.replace(variable+',','')
+        if ligne.startswith(varName):
+            ligneSansVariable = ligne.replace(varName+',','')
             listVal = np.float_(ligneSansVariable.rstrip().split(','))
             for i in range(nbVal):
                 data[listLigne[i]] = np.append(data[listLigne[i]], listVal[i])
-
     return data
 
 def readLogFile(fileName):
@@ -35,9 +35,9 @@ def readLogFile(fileName):
     """
 
     # Read Log Airborne
-    pos = logExtractVar(nameLogFile, 'POS')
-    gps = logExtractVar(nameLogFile, 'GPS')
-    ekf1 = logExtractVar(nameLogFile, 'EKF1')
+    pos = extractVar(fileName, 'POS')
+    gps = extractVar(fileName, 'GPS')
+    ekf1 = extractVar(fileName, 'EKF1')
 
     # Datation des position a l'aide de la date GPS
     dateRef = dt.datetime(1980, 1, 6, 0, 0, 0, 0)
@@ -73,7 +73,7 @@ def readLogDirectory(directory, pattern='*.log'):
         for key in currentData.keys():
             if key in data.keys():
                 data[key] = np.append(data[key], currentData[key])
-            else
+            else:
                 data[key] = currentData[key]
 
     return data
