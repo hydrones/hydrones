@@ -30,6 +30,7 @@ def readTmFile(fileName, mode='mode1'):
         containing measurement and clock values
     """
 
+    print("reading telemetry file %s" %fileName)
     # init of output dictionnaries
     hdMeas = dict()
     hdClock = dict()
@@ -341,6 +342,7 @@ def readTmFile(fileName, mode='mode1'):
     else:
         raise Exception("mode %s is unknown")
 
+    print("read %s measures" %nbMeasure)
     return (hdMeas, hdClock)
 
 
@@ -348,6 +350,8 @@ def readTmDirectory(directory, pattern='*', mode='mode1'):
     """
         reads all telemetry files mathcing pattern in directory
     """
+
+    print("reading telemetry files from %s" %directory)
 
     # init of output dictionnaries
     meas = dict()
@@ -358,7 +362,9 @@ def readTmDirectory(directory, pattern='*', mode='mode1'):
         clock[key] = np.array([])
 
     # list of files to read
+    print("looking for files matching %s" %pattern)
     listFile = sorted(glob.glob("%s/%s" %(directory, pattern)))
+    print("%s files were found" %len(listFile))
 
     # loop through all files
     for fileName in listFile:

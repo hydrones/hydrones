@@ -162,6 +162,7 @@ class Trajectory:
             d[key] = interpVal
 
         return(pd.DataFrame(d, index=self.timeIndex))
+#===============================================================================
 
 #===============================================================================
 # data selection routines
@@ -218,8 +219,46 @@ class Trajectory:
             return Trajectory(df=dfInput)
 #===============================================================================
 
+#===============================================================================
+# calcul de paramètres
+    def mispointingEstimation(self, rangeKey='range',
+        rollKey='roll',
+        pitchKey='pitch',
+        mispointKey='mispointing',
+        corrRangeKey='corrected_range'):
+        """
+            estimate the range correction due to mispointing
 
-#==============================================================================
+            :param rangeKey: name of the range column
+            :param pitchKey: name of the pitch column
+            :param rollKey: name of the roll column
+            :param mispointKey: name of the mispointing column (sqrt(roll^2 + pitch^2))
+            :param rangeCorrKey: name of the corrected range column (range * cos(mispointing))
+        """
+
+        # estimate the mispointing
+        mispointing = [math.sqrt(self.data[rollKey][i]**2 + self.data[pitchKey][i]**2) for i in np.arange(len(self.data.index))]
+
+        # correct the range
+        correctedRange = [self.data[rangeKey][i] * math.cos(math.degrees(mispointing[i])) for i in np.arange(len(self.data.index))]
+
+        # store the results
+        if mispointKey in self.data.keys():
+            self.data[mispointKey].values = mispointing
+        else:
+            df = pd.DataFrame({mispointKey: mispointing}, index=self.data.index)
+            self.data = pd.concat([self.data, df], axis=1)
+
+        if corrRangeKey in self.data.keys():
+            self.data[corrRangeKey].values = correctedRange
+        else:
+            df = pd.DataFrame({corrRangeKey: correctedRange}, index=self.data.index)
+            self.data = pd.concat([self.data, df], axis=1)
+
+        return 0
+#===============================================================================
+
+#===============================================================================
 # functions to travel along a trajectory
     def travel(self, delay=0.1):
         '''
