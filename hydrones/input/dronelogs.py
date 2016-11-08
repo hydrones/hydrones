@@ -33,10 +33,13 @@ def readLogFile(fileName):
         reads from an airborne log file
         :return: dictionnary containing
     """
+    print("reading log data from %s" %fileName)
 
     # Read Log Airborne
     pos = extractVar(fileName, 'POS')
+    print(pos)
     gps = extractVar(fileName, 'GPS')
+    print(gps)
     ekf1 = extractVar(fileName, 'EKF1')
 
     # Datation des position a l'aide de la date GPS
@@ -44,6 +47,9 @@ def readLogFile(fileName):
     clockPos = pos['TimeUS']
     clockGPS = gps['TimeUS']
     secGPSfromRef = np.array([gps['GMS'][i]/1e3 + gps['GWk'][i]*7*86400.0 for i in range(len(gps['TimeUS']))])
+    print(clockPos)
+    print(clockGPS)
+    print(secGPSfromRef)
     secPosfromRef = np.interp(clockPos, clockGPS, secGPSfromRef)
     pos['AbsoluteDate'] = np.array([dateRef + dt.timedelta(seconds=s) for s in secPosfromRef])
 
@@ -64,16 +70,17 @@ def readLogDirectory(directory, pattern='*.log'):
         :return: dictionnary containing the data
     """
 
+    print("reading drone logs from %s" %directory)
     listFile = sorted(glob.glob("%s/%s" %(directory, pattern)))
+    print("%s files were found" %len(listFile))
+
     data = dict()
 
     for fileName in listFile:
         currentData = readLogFile(fileName)
-
         for key in currentData.keys():
             if key in data.keys():
                 data[key] = np.append(data[key], currentData[key])
             else:
                 data[key] = currentData[key]
-
     return data
