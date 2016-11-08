@@ -183,9 +183,9 @@ class Trajectory:
 
             :return: trajectory object containing the selection
         """
-        index = np.where((self.timeIndex >= beginDate) & (self.timeIndex) < endDate)
-        df = self.data.iloc[index, :]
-        return trajectory(df=df)
+        index = np.where((self.timeIndex >= beginDate) & (self.timeIndex < endDate))
+        df = self.data.iloc[index]
+        return Trajectory(df=df)
 #===============================================================================
 
 #===============================================================================
@@ -226,6 +226,68 @@ class Trajectory:
             return 0
         else:
             return Trajectory(df=dfInput)
+
+    def iterativeEditing(self, key, filter='lowess', nStep=1, window=10, threshold=3, outKey=None):
+        """
+            perform a simple editing by removing points too far away from local filter output
+
+            :param key: name of the column to perform on
+            :param iter: number of iterations
+            :param window: width of the filtering window
+            :param threshold: editing threshold (in stddev)
+            :param outKey: name of the output column, if none, will return the data as an array
+        """
+
+        # perform the filter
+        filteredValues = self.filter(key, filter='lowess', window=10, outKey=None)
+
+
+    def filter(self, key, filter=None, window=10., cutoff=10., outKey=None):
+        """
+            filters the input column
+        """
+        import statsmodels.api as sm
+        from astropy.convolution import convolve, Box1DKernel
+
+        endog = self.data[key].values
+        exog = self.datetimeToSeconds(self.timeIndex, self.timeIndex[0])
+
+        if filter=='lowess':
+            frac=window/len(self.timeIndex)
+            lowess = sm.nonparametric.lowess
+            filteredValues = lowess(endog, exog, frac=frac, return_sorted=False)
+        elif filter=='box':
+            kernel = Box1DKernel(window)
+            filteredValues = convolve(endog, kernel, boundary='extend')
+        elif filter=='lanczos':
+            kernel = self._lanczosKernel(window=window, cutoff=cutoff)
+            filteredValues = convolve(endog, kernel, boundary='extend')
+
+
+
+        if outKey is None:
+            return filteredValues
+        else:
+            df = pd.DataFrame({outKey:filteredValues}, index=self.timeIndex)
+            pd.concat([self.data, df], axis=1)
+            return 0
+
+    def _lanczosKernel(self, window=None, cutoff=None):
+        """
+            lanczos filter weights
+        """
+        order = ((window - 1) // 2 ) + 1
+        nwts = 2 * order + 1
+        w = np.zeros([nwts])
+        n = nwts // 2
+        w[n] = 2 * cutoff
+        k = np.arange(1., n)
+        sigma = np.sin(np.pi * k / n) * n / (np.pi * k)
+        firstfactor = np.sin(2. * np.pi * cutoff * k) / (np.pi * k)
+        w[n-1:0:-1] = firstfactor * sigma
+        w[n+1:-1] = firstfactor * sigma
+        return w[1:-1]
+
 #===============================================================================
 
 #===============================================================================
@@ -242,7 +304,7 @@ class Trajectory:
             :param pitchKey: name of the pitch column
             :param rollKey: name of the roll column
             :param mispointKey: name of the mispointing column (sqrt(roll^2 + pitch^2))
-            :param rangeCorrKey: name of the corrected range column (range * cos(mispointing))
+            :param corrRangeKey: name of the corrected range column (range * cos(mispointing))
         """
         from math import cos, sqrt, degrees
 
