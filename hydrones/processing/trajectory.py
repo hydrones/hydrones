@@ -11,6 +11,7 @@ import pandas as pd
 import datetime as dt
 from input.telemetry import readTmDirectory
 from input.dronelogs import readLogDirectory
+import copy
 
 class Trajectory:
     '''
@@ -193,14 +194,14 @@ class Trajectory:
             :return: trajectory object is inplace is True, O if not
         """
 
-        dfInput = copy(self.data)
-        inputValues = copy(dfInput[inputKey].values)
-        inputValues[np.where(inputValues != inputValues)] = np.nan
+        dfInput = copy.copy(self.data)
+        inputValues = copy.copy(dfInput[inputKey].values)
+        inputValues[np.where(inputValues == 0)] = np.nan
 
         # apply the changes to self.data
         if outputKey is None:
             # do the modifications on the column itself
-            dfInput[inputKey].values = inputValues
+            dfInput[inputKey] = inputValues
         else:
             # add a new column to the dataframe
             df = pd.DataFrame({outputKey: inputValues}, index=dfInput.index)
