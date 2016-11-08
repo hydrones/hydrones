@@ -114,6 +114,13 @@ class Trajectory:
                 orientation.append(1.)
         seconds = [(i - origDate).total_seconds() for i in datetimes]
         return np.multiply(seconds, np.array(orientation))
+
+    def _updateTimeIndex(self):
+        """
+            rebuilds timeIndex from data.index
+        """
+        self.timeIndex = np.array([pd.Timestamp(i).to_datetime() for i in self.data.index.values])
+        return 0
 #===============================================================================
 
 #===============================================================================
@@ -215,6 +222,7 @@ class Trajectory:
         # returns
         if inplace:
             self.data = dfInput
+            self._updateTimeIndex()
             return 0
         else:
             return Trajectory(df=dfInput)
@@ -236,26 +244,41 @@ class Trajectory:
             :param mispointKey: name of the mispointing column (sqrt(roll^2 + pitch^2))
             :param rangeCorrKey: name of the corrected range column (range * cos(mispointing))
         """
+        from math import cos, sqrt, degrees
 
         # estimate the mispointing
-        mispointing = [math.sqrt(self.data[rollKey][i]**2 + self.data[pitchKey][i]**2) for i in np.arange(len(self.data.index))]
+        mispointing = [sqrt(self.data[rollKey][i]**2 + self.data[pitchKey][i]**2) for i in np.arange(len(self.data.index))]
 
         # correct the range
-        correctedRange = [self.data[rangeKey][i] * math.cos(math.degrees(mispointing[i])) for i in np.arange(len(self.data.index))]
+        correctedRange = [self.data[rangeKey][i] * cos(degrees(mispointing[i])) for i in np.arange(len(self.data.index))]
 
         # store the results
         if mispointKey in self.data.keys():
-            self.data[mispointKey].values = mispointing
+            self.data[mispointKey] = mispointing
         else:
             df = pd.DataFrame({mispointKey: mispointing}, index=self.data.index)
             self.data = pd.concat([self.data, df], axis=1)
 
         if corrRangeKey in self.data.keys():
-            self.data[corrRangeKey].values = correctedRange
+            self.data[corrRangeKey] = correctedRange
         else:
             df = pd.DataFrame({corrRangeKey: correctedRange}, index=self.data.index)
             self.data = pd.concat([self.data, df], axis=1)
 
+        return 0
+
+    def levelEstimation(self, altKey='altitude', rangeKey='leddar_range', outKey='sea_surface'):
+        """
+            estimates the surface level by altitude - rangeKey
+
+            :param altKey: name of the altitude column
+            :param rangeKey: name of the range column
+            :param outKey: name of the resulting column
+        """
+
+        out = [self.data[altKey][i] - self.data[rangeKey][i] for i in np.arange(len(self.data.index))]
+        df = pd.DataFrame({outKey: out}, index=self.data.index)
+        self.data = pd.concat([self.data, df], axis=1)
         return 0
 #===============================================================================
 

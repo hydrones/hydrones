@@ -37,9 +37,7 @@ def readLogFile(fileName):
 
     # Read Log Airborne
     pos = extractVar(fileName, 'POS')
-    print(pos)
     gps = extractVar(fileName, 'GPS')
-    print(gps)
     ekf1 = extractVar(fileName, 'EKF1')
 
     # Datation des position a l'aide de la date GPS
@@ -47,9 +45,6 @@ def readLogFile(fileName):
     clockPos = pos['TimeUS']
     clockGPS = gps['TimeUS']
     secGPSfromRef = np.array([gps['GMS'][i]/1e3 + gps['GWk'][i]*7*86400.0 for i in range(len(gps['TimeUS']))])
-    print(clockPos)
-    print(clockGPS)
-    print(secGPSfromRef)
     secPosfromRef = np.interp(clockPos, clockGPS, secGPSfromRef)
     pos['AbsoluteDate'] = np.array([dateRef + dt.timedelta(seconds=s) for s in secPosfromRef])
 
