@@ -33,6 +33,7 @@ def readLogFile(fileName):
         reads from an airborne log file
         :return: dictionnary containing
     """
+    print("reading log data from %s" %fileName)
 
     # Read Log Airborne
     pos = extractVar(fileName, 'POS')
@@ -64,16 +65,17 @@ def readLogDirectory(directory, pattern='*.log'):
         :return: dictionnary containing the data
     """
 
+    print("reading drone logs from %s" %directory)
     listFile = sorted(glob.glob("%s/%s" %(directory, pattern)))
+    print("%s files were found" %len(listFile))
+
     data = dict()
 
     for fileName in listFile:
         currentData = readLogFile(fileName)
-
         for key in currentData.keys():
             if key in data.keys():
                 data[key] = np.append(data[key], currentData[key])
             else:
                 data[key] = currentData[key]
-
     return data
