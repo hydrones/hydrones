@@ -12,6 +12,7 @@ import datetime as dt
 from input.telemetry import readTmDirectory
 from input.dronelogs import readLogDirectory
 import copy
+import pdb
 
 class Trajectory:
     '''
@@ -20,7 +21,7 @@ class Trajectory:
 
     def __init__(self, tmDir=None, tmPattern='HD*', tmMode='mode1',
                     logDir=None, logPattern='*.csv',
-                    df=None, secOffset=17):
+                    df=None, secOffset=17.0):
         '''
             constructor
 
@@ -56,7 +57,7 @@ class Trajectory:
             int(self._tmMeasure['hour'][0]),
             int(self._tmMeasure['min'][0]),
             int(self._tmMeasure['sec'][0]),
-            int(self._tmMeasure['usec'][0]))
+            int(self._tmMeasure['usec'][0])) + dt.timedelta(seconds=secOffset)
 
             # reference all clock to the first GPS clock and date
             for k in self._tmClock.keys():
@@ -64,9 +65,6 @@ class Trajectory:
 
             # create the main time index from leddar clock values
             self.timeIndex = self.secondsToDatetime(self._tmClock['leddar'], self.origDate)
-
-            # add the secOffset to be in UTC
-            self.timeIndex = self.timeIndex + dt.timedelta(seconds=secOffset)
 
             # interpolate everything to leddar dates
             self.data = self.everythingToDataframe(index=self.timeIndex)
