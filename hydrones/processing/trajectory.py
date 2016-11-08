@@ -20,7 +20,7 @@ class Trajectory:
 
     def __init__(self, tmDir=None, tmPattern='HD*', tmMode='mode1',
                     logDir=None, logPattern='*.csv',
-                    df=None):
+                    df=None, secOffset=17):
         '''
             constructor
 
@@ -28,6 +28,7 @@ class Trajectory:
             :param tmPattern: pattern to select tm files
             :param logDir: directory to read log files from
             :param logPattern: pattern to select log files
+            :param secOffset: nb seonds to shift in UTC
         '''
 
         # fill object from a dataframe
@@ -48,7 +49,7 @@ class Trajectory:
                 log = readLogDirectory(logDir, pattern=logPattern)
                 self._logMeasure = log
 
-            # get the origin of dates
+            # get the origin of dates to the first GPS date
             self.origDate = dt.datetime(int(self._tmMeasure['year'][0]),
             int(self._tmMeasure['month'][0]),
             int(self._tmMeasure['day'][0]),
@@ -57,8 +58,15 @@ class Trajectory:
             int(self._tmMeasure['sec'][0]),
             int(self._tmMeasure['usec'][0]))
 
+            # reference all clock to the first GPS clock and date
+            for k in self._tmClock.keys():
+                self._tmClock[k] = self._tmClock[k] - self._tmClock['gps'][0]
+
             # create the main time index from leddar clock values
             self.timeIndex = self.secondsToDatetime(self._tmClock['leddar'], self.origDate)
+
+            # add the secOffset to be in UTC
+            self.timeIndex = self.timeIndex + dt.timedelta(seconds=secOffset)
 
             # interpolate everything to leddar dates
             self.data = self.everythingToDataframe(index=self.timeIndex)
