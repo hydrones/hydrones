@@ -233,7 +233,7 @@ class Trajectory:
         else:
             return Trajectory(df=dfInput)
 
-    def iterativeEditing(self, key, filter='lowess', nStep=1, window=10, threshold=3, outKey=None):
+    def iterativeEditing(self, key, filter='lowess', nStep=1, window=10, threshold=3, outKey=None, cutoff=None):
         """
             perform a simple editing by removing points too far away from local filter output
 
@@ -243,9 +243,17 @@ class Trajectory:
             :param threshold: editing threshold (in stddev)
             :param outKey: name of the output column, if none, will return the data as an array
         """
+        it = 0
 
-        # perform the filter
-        filteredValues = self.filter(key, filter='lowess', window=10, outKey=None)
+        while it < nStep:
+
+            # filter the values
+            filteredValues = self.filter(key, filter=filter, window=10, outKey=None, cutoff=cutoff)
+
+            firstIndex = 0
+            lastIndex = firstIndex + window
+
+
 
 
     def filter(self, key, filter=None, window=10., cutoff=10., outKey=None):
@@ -268,8 +276,8 @@ class Trajectory:
         elif filter=='lanczos':
             kernel = self._lanczosKernel(window=window, cutoff=cutoff)
             filteredValues = convolve(endog, kernel, boundary='extend')
-
-
+        elif filter=='median':
+            filteredValues = self._medfilt(endog, window)
 
         if outKey is None:
             return filteredValues
@@ -277,6 +285,24 @@ class Trajectory:
             df = pd.DataFrame({outKey:filteredValues}, index=self.timeIndex)
             pd.concat([self.data, df], axis=1)
             return 0
+
+    def _medfilt (self, x, k):
+        """
+            Apply a length-k median filter to a 1D array x.
+            Boundaries are extended by repeating endpoints.
+        """
+        assert k % 2 == 1, "Median filter length must be odd."
+        assert x.ndim == 1, "Input must be one-dimensional."
+        k2 = (k - 1) // 2
+        y = np.zeros ((len (x), k), dtype=x.dtype)
+        y[:,k2] = x
+        for i in range (k2):
+            j = k2 - i
+            y[j:,i] = x[:-j]
+            y[:j,i] = x[0]
+            y[:-j,-(i+1)] = x[j:]
+            y[-j:,-(i+1)] = x[-1]
+        return np.median (y, axis=1)
 
     def _lanczosKernel(self, window=None, cutoff=None):
         """
@@ -312,13 +338,13 @@ class Trajectory:
             :param mispointKey: name of the mispointing column (sqrt(roll^2 + pitch^2))
             :param corrRangeKey: name of the corrected range column (range * cos(mispointing))
         """
-        from math import cos, sqrt, degrees
+        from math import cos, sqrt, radians
 
         # estimate the mispointing
         mispointing = [sqrt(self.data[rollKey][i]**2 + self.data[pitchKey][i]**2) for i in np.arange(len(self.data.index))]
 
         # correct the range
-        correctedRange = [self.data[rangeKey][i] * cos(degrees(mispointing[i])) for i in np.arange(len(self.data.index))]
+        correctedRange = [self.data[rangeKey][i] * cos(radians(mispointing[i])) for i in np.arange(len(self.data.index))]
 
         # store the results
         if mispointKey in self.data.keys():
