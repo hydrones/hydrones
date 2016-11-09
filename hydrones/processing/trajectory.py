@@ -195,6 +195,23 @@ class Trajectory:
 #===============================================================================
 
 #===============================================================================
+# export routines
+    def toCSV(self, keys=[], output=None):
+
+        if len(keys) == 0:
+            keys = self.data.keys()
+
+        f = open(output, 'w')
+
+        for i in np.arange(len(self.timeIndex)):
+             
+
+
+
+        f.write(line)
+
+
+#===============================================================================
 # fonctions d'editing
     def zeroesToNan(self, inputKey, outputKey=None, dropna=False, inplace=False):
         """
