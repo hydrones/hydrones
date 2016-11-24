@@ -196,19 +196,15 @@ class Trajectory:
 
 #===============================================================================
 # export routines
-    def toCSV(self, keys=[], output=None):
+    # def toCSV(self, keys=[], output=None):
 
-        if len(keys) == 0:
-            keys = self.data.keys()
+    #     if len(keys) == 0:
+    #         keys = self.data.keys()
 
-        f = open(output, 'w')
+    #     f = open(output, 'w')
 
-        for i in np.arange(len(self.timeIndex)):
-             
-
-
-
-        f.write(line)
+    #     for i in np.arange(len(self.timeIndex)):
+    #         f.write(line)
 
 
 #===============================================================================
